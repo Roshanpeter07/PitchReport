@@ -271,7 +271,7 @@ while datetime.now() < match_ends:
     audio_flag_update()
     print(f"Loop Number: {loop} end time",datetime.now())
     loop+=1
-    time.sleep(60)
+    time.sleep(5)
 
 print("Match Completed")
 
