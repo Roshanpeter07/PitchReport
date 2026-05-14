@@ -27,6 +27,10 @@ import numpy as np
 import pandas as pd
 import warnings
 import random
+import uuid
+import shutil
+import subprocess
+import boto3
 
 
 # # LLM **Integration**
@@ -84,7 +88,7 @@ groq_llama2_model = ChatGroq(
 )
 
 
-# In[ ]:
+# In[4]:
 
 
 system_prompt = '''
@@ -156,19 +160,7 @@ def call_llm(humanmessage):
 
 # # Commentary Scraping
 
-# In[7]:
-
-
-url= "https://www.cricbuzz.com/live-cricket-scores/151935/dc-vs-rcb-39th-match-indian-premier-league-2026"
-
-
-# In[8]:
-
-
-div_data = pd.DataFrame(columns=['Id', 'Raw_comms', 'Modified_comms', 'AudioFile_Flag'])
-
-
-# In[9]:
+# In[31]:
 
 
 def table_update(Id, Raw_comms, Modified_comms, AudioFile_Flag):
@@ -177,7 +169,7 @@ def table_update(Id, Raw_comms, Modified_comms, AudioFile_Flag):
     div_data=pd.concat([div_data, new_row])
 
 
-# In[10]:
+# In[32]:
 
 
 def refresh_data():
@@ -195,7 +187,7 @@ def refresh_data():
     print("Data Load Completed. Time: ", datetime.now())
 
 
-# In[11]:
+# In[33]:
 
 
 def audio_flag_update():
@@ -205,8 +197,8 @@ def audio_flag_update():
     audio_div_data = audio_div_data.sort_values(by='Id', ascending = False)
     for i in audio_div_data['Modified_comms'].values:
         audio_id=audio_div_data.loc[audio_div_data['Modified_comms'] == i, 'Id'].iloc[0]
-        print('Converted Text: \n\n', i,'\n\n')
-        generate_audio(i,str(audio_id))
+        # print('Converted Text: \n\n', i,'\n\n')
+        generate_audio(i)
         div_data.loc[div_data['Id'] ==audio_id, 'AudioFile_Flag'] = 1
         audio_div_data.loc[audio_div_data['Id'] == audio_id, 'AudioFile_Flag'] = 1
         print("Audio Flag Updated")
@@ -214,7 +206,7 @@ def audio_flag_update():
 
 # # Text-To-Speech
 
-# In[12]:
+# In[34]:
 
 
 warnings.filterwarnings("ignore")
@@ -224,14 +216,47 @@ pipeline = KPipeline(
 )
 
 
-# In[13]:
+# In[35]:
 
 
-def generate_audio(commentary, audio_id):
+def upload_hls_files(hls_stream_path):
+    global uploaded_files
+    for filename in sorted(os.listdir(hls_stream_path)):
+        local_path = os.path.join(hls_stream_path, filename)
+        if not os.path.isfile(local_path):
+            continue
+        # Always upload playlist
+
+        # Skip already uploaded segments
+        if filename in uploaded_files:
+            continue
+
+        s3.upload_file(
+            local_path,
+            BUCKET_NAME,
+            f"live/{filename}"
+        )
+        if filename == "stream.m3u8":
+            s3.upload_file(
+                local_path,
+                BUCKET_NAME,
+                f"live/{filename}"
+            )
+            print("Playlist Uploaded")
+            continue
+        uploaded_files.add(filename)
+        # print(f"Uploaded new segment: {filename}")
+
+
+# In[43]:
+
+
+def generate_audio(commentary):
+    global segment_counter
     generator = pipeline(
         commentary,
         voice="am_santa",
-        speed=1.0
+        speed=0.95
     )
 
     all_audio = []
@@ -241,23 +266,181 @@ def generate_audio(commentary, audio_id):
     print(f"Generated chunk {i+1}")
 
     final_audio = np.concatenate(all_audio)
-
-    output_path = f"Audio Files/{audio_id}_commentary.wav"
+    date_time = datetime.now().strftime('%H:%M:%S.%f')
+    output_path = f"Audio Files/{match_name}/{date_time}_comms.wav"
     sf.write(output_path, final_audio, 24000)
 
-    print(f"{output_path} file generated")
+    print(f"Audio file generated")
 
 
-# # Main functions
+    ffmpeg_command = [
+        "ffmpeg",
+        "-loglevel", "error",
+        "-y",
+        "-i", output_path,
+        # Audio codec
+        "-c:a", "aac",
+        "-b:a", "128k",
+        # HLS settings
+        "-hls_time", "2",
+        "-hls_list_size", "20",
+        "-hls_segment_type", "mpegts",
+        "-hls_flags", "append_list",
+        "-start_number", str(segment_counter),
+        # Segment naming
+        "-hls_segment_filename",
+        f"{hls_stream_path}/segment_%04d.ts",
+        # Playlist output
+        f"{hls_stream_path}/stream.m3u8"
+    ]
+    subprocess.run(ffmpeg_command, check=True)
+    segment_counter += int(len(final_audio) / 24000 / 2) + 1
+    print(f"HLS stream generated") 
+    upload_hls_files(hls_stream_path)
+
 
 # In[ ]:
 
 
+def generate_silence_segment(hls_stream_path):
+    global segment_counter
+    silence_wav = f"{hls_stream_path}/silence_5s.wav"
+
+    # =========================
+    # Create 5-second silence WAV
+    # =========================
+    silence_command = [
+        "ffmpeg",
+        "-loglevel", "error",
+        "-y",
+
+        "-f", "lavfi",
+        "-i", "anullsrc=r=24000:cl=mono",
+
+        "-t", "5",
+
+        silence_wav
+    ]
+
+    subprocess.run(
+        silence_command,
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+
+    # =========================
+    # Convert silence → HLS
+    # =========================
+    hls_command = [
+        "ffmpeg",
+        "-loglevel", "error",
+        "-y",
+
+        "-i", silence_wav,
+
+        # Audio codec
+        "-c:a", "aac",
+        "-b:a", "128k",
+
+        # HLS settings
+        "-hls_time", "2",
+        "-hls_list_size", "20",
+        "-hls_segment_type", "mpegts",
+
+        # Append mode
+        "-hls_flags", "append_list",
+
+        # Continue numbering
+        "-start_number", str(segment_counter),
+
+        # Segment naming
+        "-hls_segment_filename",
+        f"{hls_stream_path}/segment_%04d.ts",
+
+        # Playlist
+        f"{hls_stream_path}/stream.m3u8"
+    ]
+
+    subprocess.run(
+        hls_command,
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+
+    # =========================
+    # Upload new segments + playlist
+    # =========================
+
+    upload_hls_files(hls_stream_path)
+
+    # =========================
+    # Cleanup temp silence wav
+    # =========================
+
+    if os.path.exists(silence_wav):
+        os.remove(silence_wav)
+
+    # =========================
+    # Estimate next segment number
+    # =========================
+
+    segment_counter += 3
+
+    print("5-second silence segment added to live stream")
+
+    return segment_counter
+
+
+# # Main functions
+
+# In[37]:
+
+
+url= "https://www.cricbuzz.com/live-cricket-scores/152141/pbks-vs-mi-58th-match-indian-premier-league-2026"
+
+
+# In[38]:
+
+
+match_name = url.split('/')[5]
+
+
+# In[39]:
+
+
+div_data = pd.DataFrame(columns=['Id', 'Raw_comms', 'Modified_comms', 'AudioFile_Flag'])
+
+
+# In[40]:
+
+
+s3 = boto3.client(
+    service_name="s3",
+    endpoint_url=os.getenv('R2_ENDPOINT'),
+    aws_access_key_id=os.getenv('R2_ACCESS_KEY'),
+    aws_secret_access_key=os.getenv('R2_SECRET_KEY'),
+    region_name="auto"
+)
+BUCKET_NAME = os.getenv('BUCKET_NAME')
+
+
+# In[41]:
+
+
 match_start = datetime.now()
-match_ends = match_start + timedelta(hours=3)
+match_ends = match_start + timedelta(minutes=3)
 print('Match start time: ',match_start)
 print('Match end time: ', match_ends)
+segment_counter = 0
 loop = 1
+uploaded_files = set()
+# stream_id = str(uuid.uuid4())[:8]
+audio_path = f"Audio Files/{match_name}"
+hls_stream_path = f"hls_stream/{match_name}"
+os.makedirs(audio_path, exist_ok=True)
+os.makedirs(hls_stream_path, exist_ok=True)
 while datetime.now() < match_ends:
     print(f"Loop Number: {loop} start time",datetime.now())
     refresh_data()
@@ -267,6 +450,12 @@ while datetime.now() < match_ends:
     time.sleep(5)
 
 print("Match Completed")
+
+
+# In[ ]:
+
+
+
 
 
 # In[ ]:
