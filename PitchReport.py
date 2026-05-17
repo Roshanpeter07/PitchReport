@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 # !uv pip install -q langchain langchain_openai langchain-google-genai python-dotenv
 
 
-# In[1]:
+# In[ ]:
 
 
 import requests
@@ -35,7 +35,7 @@ import boto3
 
 # # LLM **Integration**
 
-# In[2]:
+# In[ ]:
 
 
 load_dotenv()
@@ -46,7 +46,7 @@ OPENRouter_API_BASE= os.getenv('OPENRouter_API_BASE')
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
 
-# In[3]:
+# In[ ]:
 
 
 openai_model = ChatOpenAI(
@@ -88,7 +88,7 @@ groq_llama2_model = ChatGroq(
 )
 
 
-# In[4]:
+# In[ ]:
 
 
 system_prompt = '''
@@ -135,13 +135,13 @@ Return only the transformed commentary and nothing else.
 '''
 
 
-# In[5]:
+# In[ ]:
 
 
 all_models = [groq_openai_model, groq_llama_model, groq_llama2_model]
 
 
-# In[6]:
+# In[ ]:
 
 
 def call_llm(humanmessage):
@@ -160,7 +160,7 @@ def call_llm(humanmessage):
 
 # # Commentary Scraping
 
-# In[31]:
+# In[ ]:
 
 
 def table_update(Id, Raw_comms, Modified_comms, AudioFile_Flag):
@@ -169,7 +169,7 @@ def table_update(Id, Raw_comms, Modified_comms, AudioFile_Flag):
     div_data=pd.concat([div_data, new_row])
 
 
-# In[32]:
+# In[ ]:
 
 
 def refresh_data():
@@ -187,7 +187,7 @@ def refresh_data():
     print("Data Load Completed. Time: ", datetime.now())
 
 
-# In[33]:
+# In[ ]:
 
 
 def audio_flag_update():
@@ -197,7 +197,7 @@ def audio_flag_update():
     audio_div_data = audio_div_data.sort_values(by='Id', ascending = False)
     for i in audio_div_data['Modified_comms'].values:
         audio_id=audio_div_data.loc[audio_div_data['Modified_comms'] == i, 'Id'].iloc[0]
-        # print('Converted Text: \n\n', i,'\n\n')
+        print('Converted Text: \n\n', i,'\n\n')
         generate_audio(i)
         div_data.loc[div_data['Id'] ==audio_id, 'AudioFile_Flag'] = 1
         audio_div_data.loc[audio_div_data['Id'] == audio_id, 'AudioFile_Flag'] = 1
@@ -206,7 +206,7 @@ def audio_flag_update():
 
 # # Text-To-Speech
 
-# In[34]:
+# In[ ]:
 
 
 warnings.filterwarnings("ignore")
@@ -216,39 +216,7 @@ pipeline = KPipeline(
 )
 
 
-# In[35]:
-
-
-def upload_hls_files(hls_stream_path):
-    global uploaded_files
-    for filename in sorted(os.listdir(hls_stream_path)):
-        local_path = os.path.join(hls_stream_path, filename)
-        if not os.path.isfile(local_path):
-            continue
-        # Always upload playlist
-
-        # Skip already uploaded segments
-        if filename in uploaded_files:
-            continue
-
-        s3.upload_file(
-            local_path,
-            BUCKET_NAME,
-            f"live/{filename}"
-        )
-        if filename == "stream.m3u8":
-            s3.upload_file(
-                local_path,
-                BUCKET_NAME,
-                f"live/{filename}"
-            )
-            print("Playlist Uploaded")
-            continue
-        uploaded_files.add(filename)
-        # print(f"Uploaded new segment: {filename}")
-
-
-# In[43]:
+# In[ ]:
 
 
 def generate_audio(commentary):
@@ -283,10 +251,11 @@ def generate_audio(commentary):
         "-b:a", "128k",
         # HLS settings
         "-hls_time", "2",
-        "-hls_list_size", "20",
+        "-hls_list_size", "0",
         "-hls_segment_type", "mpegts",
-        "-hls_flags", "append_list",
-        "-start_number", str(segment_counter),
+        # "-hls_flags", "append_list",
+        "-hls_flags", "append_list+omit_endlist",
+        # "-start_number", str(segment_counter),
         # Segment naming
         "-hls_segment_filename",
         f"{hls_stream_path}/segment_%04d.ts",
@@ -302,118 +271,116 @@ def generate_audio(commentary):
 # In[ ]:
 
 
-def generate_silence_segment(hls_stream_path):
-    global segment_counter
-    silence_wav = f"{hls_stream_path}/silence_5s.wav"
+def upload_hls_files(hls_stream_path):
+    global uploaded_files
+    for filename in sorted(os.listdir(hls_stream_path)):
+        local_path = os.path.join(hls_stream_path, filename)
+        if not os.path.isfile(local_path):
+            continue
+        # Always upload playlist
 
-    # =========================
-    # Create 5-second silence WAV
-    # =========================
-    silence_command = [
-        "ffmpeg",
-        "-loglevel", "error",
-        "-y",
+        # Skip already uploaded segments
+        if filename in uploaded_files:
+            continue
 
-        "-f", "lavfi",
-        "-i", "anullsrc=r=24000:cl=mono",
+        upload_file_to_r2(local_path, filename)
 
-        "-t", "5",
+        if filename == "stream.m3u8":
+            upload_file_to_r2(local_path, filename)
+            print("Playlist Uploaded")
+            continue
+        uploaded_files.add(filename)
+        # print(f"Uploaded new segment: {filename}")
 
-        silence_wav
+
+# In[ ]:
+
+
+ffmpeg_soft_command = [
+    "ffmpeg",
+    "-loglevel", "error",
+    "-y",
+    # Generate soft sine tone
+    "-f", "lavfi",
+    "-i",
+    "sine=frequency=440:sample_rate=24000",
+    # Duration
+    "-t", "2",
+    # Lower volume
+    "-filter:a",
+    "volume=0.08",
+    # Audio codec
+    "-c:a", "aac",
+    "-b:a", "128k",
+    # Output TS file
+    f"{hls_stream_path}/ambience.ts"
+]
+
+
+# In[ ]:
+
+
+ffmpeg_crowd_command = [
+    "ffmpeg",
+    "-loglevel", "error",
+    "-y",
+
+    # Generate soft stadium ambience
+    "-f", "lavfi",
+    "-i",
+    "anoisesrc=color=pink:amplitude=0.02:r=24000",
+
+    # Duration
+    "-t", "2",
+
+    # Audio codec
+    "-c:a", "aac",
+    "-b:a", "128k",
+
+    # Output TS file
+    f"{hls_stream_path}/ambience.ts"
     ]
 
+
+# In[ ]:
+
+
+def create_ambience_audio(ffmpeg_command = ffmpeg_soft_command ):
+    global hls_stream_path
     subprocess.run(
-        silence_command,
+        ffmpeg_command,
         check=True,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL
     )
+    print(f"Created ambience audio: {hls_stream_path}/ambience.ts")
 
-    # =========================
-    # Convert silence → HLS
-    # =========================
-    hls_command = [
-        "ffmpeg",
-        "-loglevel", "error",
-        "-y",
+    upload_file_to_r2(f'{hls_stream_path}/ambience.ts', 'ambience.ts')
 
-        "-i", silence_wav,
-
-        # Audio codec
-        "-c:a", "aac",
-        "-b:a", "128k",
-
-        # HLS settings
-        "-hls_time", "2",
-        "-hls_list_size", "20",
-        "-hls_segment_type", "mpegts",
-
-        # Append mode
-        "-hls_flags", "append_list",
-
-        # Continue numbering
-        "-start_number", str(segment_counter),
-
-        # Segment naming
-        "-hls_segment_filename",
-        f"{hls_stream_path}/segment_%04d.ts",
-
-        # Playlist
-        f"{hls_stream_path}/stream.m3u8"
-    ]
-
-    subprocess.run(
-        hls_command,
-        check=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-    )
-
-    # =========================
-    # Upload new segments + playlist
-    # =========================
-
-    upload_hls_files(hls_stream_path)
-
-    # =========================
-    # Cleanup temp silence wav
-    # =========================
-
-    if os.path.exists(silence_wav):
-        os.remove(silence_wav)
-
-    # =========================
-    # Estimate next segment number
-    # =========================
-
-    segment_counter += 3
-
-    print("5-second silence segment added to live stream")
-
-    return segment_counter
+    # return hls_stream_path
 
 
-# # Main functions
-
-# In[37]:
+# In[ ]:
 
 
-url= "https://www.cricbuzz.com/live-cricket-scores/152141/pbks-vs-mi-58th-match-indian-premier-league-2026"
+def append_ambience_to_playlist(
+    ambience_file_name="ambience.ts",
+    duration=2.0
+):
+    global hls_stream_path
+
+    playlist_path = f'{hls_stream_path}/stream.m3u8'
+    with open(playlist_path, "a") as f:
+
+        f.write(f"#EXTINF:{duration},\n")
+        f.write(f"{ambience_file_name}\n")
+
+    print(f"Added {ambience_file_name} to playlist")
 
 
-# In[38]:
+# # Cloudfare R2 Connection
 
-
-match_name = url.split('/')[5]
-
-
-# In[39]:
-
-
-div_data = pd.DataFrame(columns=['Id', 'Raw_comms', 'Modified_comms', 'AudioFile_Flag'])
-
-
-# In[40]:
+# In[ ]:
 
 
 s3 = boto3.client(
@@ -426,14 +393,42 @@ s3 = boto3.client(
 BUCKET_NAME = os.getenv('BUCKET_NAME')
 
 
-# In[41]:
+# In[ ]:
 
 
-match_start = datetime.now()
-match_ends = match_start + timedelta(minutes=3)
-print('Match start time: ',match_start)
-print('Match end time: ', match_ends)
-segment_counter = 0
+def upload_file_to_r2(local_path, filename):
+    global BUCKET_NAME
+    s3.upload_file(
+        local_path,
+        BUCKET_NAME,
+        f"live/{filename}"
+    )
+
+
+# # Main functions
+
+# In[ ]:
+
+
+url= "https://www.cricbuzz.com/live-cricket-scores/152174/rcb-vs-pbks-61st-match-indian-premier-league-2026"
+
+
+# In[ ]:
+
+
+match_name = url.split('/')[5]
+
+
+# In[ ]:
+
+
+div_data = pd.DataFrame(columns=['Id', 'Raw_comms', 'Modified_comms', 'AudioFile_Flag'])
+
+
+# In[ ]:
+
+
+segment_counter = 1
 loop = 1
 uploaded_files = set()
 # stream_id = str(uuid.uuid4())[:8]
@@ -441,13 +436,25 @@ audio_path = f"Audio Files/{match_name}"
 hls_stream_path = f"hls_stream/{match_name}"
 os.makedirs(audio_path, exist_ok=True)
 os.makedirs(hls_stream_path, exist_ok=True)
+
+
+# In[ ]:
+
+
+match_start = datetime.now()
+match_ends = match_start + timedelta(minutes=15)
+print('Match start time: ',match_start)
+print('Match end time: ', match_ends)
+
+create_ambience_audio()
 while datetime.now() < match_ends:
     print(f"Loop Number: {loop} start time",datetime.now())
     refresh_data()
     audio_flag_update()
     print(f"Loop Number: {loop} end time",datetime.now())
     loop+=1
-    time.sleep(5)
+    append_ambience_to_playlist()
+    # time.sleep(5)
 
 print("Match Completed")
 
