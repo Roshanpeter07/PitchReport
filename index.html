@@ -1,239 +1,223 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
+
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2685.5">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Live Cricket Commentary</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <style>
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0f172a;
+            color: white;
+            font-family: Arial, sans-serif;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            height: 100vh;
+        }
+
+        .container {
+
+            width: 90%;
+            max-width: 500px;
+
+            background: #1e293b;
+
+            border-radius: 20px;
+
+            padding: 30px;
+
+            box-sizing: border-box;
+
+            text-align: center;
+
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 28px;
+        }
+
+        .status {
+
+            margin-top: 15px;
+            margin-bottom: 20px;
+
+            color: #94a3b8;
+
+            font-size: 14px;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .live-dot {
+
+            width: 10px;
+            height: 10px;
+
+            background: red;
+
+            border-radius: 50%;
+
+            display: inline-block;
+
+            margin-right: 8px;
+
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+    </style>
+
 </head>
+
 <body>
-<p class="p1">&lt;!DOCTYPE html&gt;</p>
-<p class="p1">&lt;html lang="en"&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;head&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8" /&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0" /&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;title&gt;Live Cricket Commentary&lt;/title&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://cdn.jsdelivr.net/npm/hls.js@latest"&gt;&lt;/script&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;style&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>body {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>margin: 0;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>padding: 0;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background: #0f172a;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>color: white;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-family: Arial, sans-serif;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>justify-content: center;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>align-items: center;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>height: 100vh;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.container {</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>width: 90%;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>max-width: 500px;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>background: #1e293b;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 20px;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>padding: 30px;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>box-sizing: border-box;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>text-align: center;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>box-shadow: 0 10px 30px rgba(0,0,0,0.4);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>h1 {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>margin-top: 0;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-size: 28px;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.status {</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>margin-top: 15px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>margin-bottom: 20px;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>color: #94a3b8;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-size: 14px;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>audio {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>width: 100%;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>margin-top: 20px;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.live-dot {</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>width: 10px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>height: 10px;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>background: red;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 50%;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>display: inline-block;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>margin-right: 8px;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>animation: blink 1s infinite;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>@keyframes blink {</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>0% { opacity: 1; }</p>
-<p class="p1"><span class="Apple-converted-space">            </span>50% { opacity: 0.3; }</p>
-<p class="p1"><span class="Apple-converted-space">            </span>100% { opacity: 1; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;/head&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;body&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="container"&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;h1&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;span class="live-dot"&gt;&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>Live Cricket Commentary</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/h1&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="status" id="status"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>Connecting to live stream...</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;audio</p>
-<p class="p1"><span class="Apple-converted-space">            </span>id="audio"</p>
-<p class="p1"><span class="Apple-converted-space">            </span>controls</p>
-<p class="p1"><span class="Apple-converted-space">            </span>autoplay</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&gt;&lt;/audio&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;script&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const streamUrl =</p>
-<p class="p1"><span class="Apple-converted-space">            </span>"https://pub-3ce7b3bcc5e844aa9da0768b47c5b711.r2.dev/live/stream.m3u8";</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const audio = document.getElementById("audio");</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const status = document.getElementById("status");</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (Hls.isSupported()) {</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>const hls = new Hls({</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>// =========================</p>
-<p class="p1"><span class="Apple-converted-space">                </span>// IMPORTANT BUFFER SETTINGS</p>
-<p class="p1"><span class="Apple-converted-space">                </span>// =========================</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>liveSyncDuration: 15,</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>liveMaxLatencyDuration: 25,</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>maxBufferLength: 30,</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>maxMaxBufferLength: 60,</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>backBufferLength: 90,</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>lowLatencyMode: false,</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>hls.loadSource(streamUrl);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>hls.attachMedia(audio);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>// =========================</p>
-<p class="p1"><span class="Apple-converted-space">            </span>// Stream Ready</p>
-<p class="p1"><span class="Apple-converted-space">            </span>// =========================</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>hls.on(Hls.Events.MANIFEST_PARSED, function () {</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>status.innerText =</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>"Connected to live commentary";</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>audio.play();</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>// =========================</p>
-<p class="p1"><span class="Apple-converted-space">            </span>// Error Handling</p>
-<p class="p1"><span class="Apple-converted-space">            </span>// =========================</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>hls.on(Hls.Events.ERROR, function (event, data) {</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>console.log("HLS Error:", data);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>if (data.fatal) {</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                    </span>switch(data.type) {</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                        </span>case Hls.ErrorTypes.NETWORK_ERROR:</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                            </span>status.innerText =</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>"Network issue... reconnecting";</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                            </span>hls.startLoad();</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                            </span>break;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                        </span>case Hls.ErrorTypes.MEDIA_ERROR:</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                            </span>status.innerText =</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>"Recovering audio stream";</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                            </span>hls.recoverMediaError();</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                            </span>break;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                        </span>default:</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                            </span>status.innerText =</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>"Stream disconnected";</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                            </span>hls.destroy();</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                            </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">                </span>}</p>
-<p class="p1"><span class="Apple-converted-space">            </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>else if (audio.canPlayType('application/vnd.apple.mpegurl')) {</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>// Safari native HLS support</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>audio.src = streamUrl;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>audio.addEventListener('loadedmetadata', function () {</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>audio.play();</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>});</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/script&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;/body&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;/html&gt;</p>
+
+    <div class="container">
+
+        <h1>
+            <span class="live-dot"></span>
+            Live Cricket Commentary
+        </h1>
+
+        <div class="status" id="status">
+            Connecting to live stream...
+        </div>
+
+        <audio
+            id="audio"
+            controls
+            autoplay
+        ></audio>
+
+    </div>
+
+    <script>
+
+        const streamUrl =
+            "https://pub-3ce7b3bcc5e844aa9da0768b47c5b711.r2.dev/live/stream.m3u8";
+
+        const audio = document.getElementById("audio");
+
+        const status = document.getElementById("status");
+
+        if (Hls.isSupported()) {
+
+            const hls = new Hls({
+
+                // =========================
+                // IMPORTANT BUFFER SETTINGS
+                // =========================
+
+                liveSyncDuration: 15,
+
+                liveMaxLatencyDuration: 25,
+
+                maxBufferLength: 30,
+
+                maxMaxBufferLength: 60,
+
+                backBufferLength: 90,
+
+                lowLatencyMode: false,
+
+            });
+
+            hls.loadSource(streamUrl);
+
+            hls.attachMedia(audio);
+
+            // =========================
+            // Stream Ready
+            // =========================
+
+            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+
+                status.innerText =
+                    "Connected to live commentary";
+
+                audio.play();
+
+            });
+
+            // =========================
+            // Error Handling
+            // =========================
+
+            hls.on(Hls.Events.ERROR, function (event, data) {
+
+                console.log("HLS Error:", data);
+
+                if (data.fatal) {
+
+                    switch(data.type) {
+
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+
+                            status.innerText =
+                                "Network issue... reconnecting";
+
+                            hls.startLoad();
+
+                            break;
+
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+
+                            status.innerText =
+                                "Recovering audio stream";
+
+                            hls.recoverMediaError();
+
+                            break;
+
+                        default:
+
+                            status.innerText =
+                                "Stream disconnected";
+
+                            hls.destroy();
+
+                            break;
+                    }
+                }
+            });
+
+        }
+
+        else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+
+            // Safari native HLS support
+
+            audio.src = streamUrl;
+
+            audio.addEventListener('loadedmetadata', function () {
+
+                audio.play();
+
+            });
+        }
+
+    </script>
+
 </body>
+
 </html>
