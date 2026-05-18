@@ -2,8 +2,13 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
 
     <title>Live Cricket Commentary</title>
 
@@ -12,14 +17,20 @@
     <style>
 
         body {
+
             margin: 0;
             padding: 0;
+
             background: #0f172a;
+
             color: white;
+
             font-family: Arial, sans-serif;
 
             display: flex;
+
             justify-content: center;
+
             align-items: center;
 
             height: 100vh;
@@ -36,45 +47,42 @@
 
             padding: 30px;
 
-            box-sizing: border-box;
-
             text-align: center;
+
+            box-sizing: border-box;
 
             box-shadow: 0 10px 30px rgba(0,0,0,0.4);
         }
 
         h1 {
+
             margin-top: 0;
+
             font-size: 28px;
         }
 
-        .status {
+        .live-row {
 
-            margin-top: 15px;
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 8px;
+
             margin-bottom: 20px;
-
-            color: #94a3b8;
-
-            font-size: 14px;
-        }
-
-        audio {
-            width: 100%;
-            margin-top: 20px;
         }
 
         .live-dot {
 
             width: 10px;
+
             height: 10px;
 
             background: red;
 
             border-radius: 50%;
-
-            display: inline-block;
-
-            margin-right: 8px;
 
             animation: blink 1s infinite;
         }
@@ -82,8 +90,24 @@
         @keyframes blink {
 
             0% { opacity: 1; }
+
             50% { opacity: 0.3; }
+
             100% { opacity: 1; }
+        }
+
+        .status {
+
+            color: #cbd5e1;
+
+            font-size: 14px;
+
+            margin-bottom: 20px;
+        }
+
+        audio {
+
+            width: 100%;
         }
 
     </style>
@@ -94,13 +118,19 @@
 
     <div class="container">
 
-        <h1>
-            <span class="live-dot"></span>
-            Live Cricket Commentary
-        </h1>
+        <div class="live-row">
 
-        <div class="status" id="status">
-            Connecting to live stream...
+            <div class="live-dot"></div>
+
+            <h1>Live Cricket Commentary</h1>
+
+        </div>
+
+        <div
+            class="status"
+            id="status"
+        >
+            Connecting to stream...
         </div>
 
         <audio
@@ -113,107 +143,130 @@
 
     <script>
 
+        // =========================================
+        // YOUR LIVE STREAM URL
+        // =========================================
+
         const streamUrl =
             "https://pub-3ce7b3bcc5e844aa9da0768b47c5b711.r2.dev/live/stream.m3u8";
 
-        const audio = document.getElementById("audio");
+        const audio =
+            document.getElementById("audio");
 
-        const status = document.getElementById("status");
+        const status =
+            document.getElementById("status");
+
+        // =========================================
+        // HLS.js Playback
+        // =========================================
 
         if (Hls.isSupported()) {
 
             const hls = new Hls({
 
-                // =========================
+                // ===============================
                 // IMPORTANT BUFFER SETTINGS
-                // =========================
+                // ===============================
 
-                liveSyncDuration: 15,
+                liveSyncDuration: 20,
 
-                liveMaxLatencyDuration: 25,
+                liveMaxLatencyDuration: 40,
 
-                maxBufferLength: 30,
+                maxBufferLength: 60,
 
-                maxMaxBufferLength: 60,
+                maxMaxBufferLength: 120,
 
-                backBufferLength: 90,
+                backBufferLength: 120,
 
                 lowLatencyMode: false,
 
+                startPosition: -20
             });
 
             hls.loadSource(streamUrl);
 
             hls.attachMedia(audio);
 
-            // =========================
-            // Stream Ready
-            // =========================
+            // ===============================
+            // Playlist loaded
+            // ===============================
 
-            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+            hls.on(
+                Hls.Events.MANIFEST_PARSED,
+                function () {
 
-                status.innerText =
-                    "Connected to live commentary";
+                    status.innerText =
+                        "Live commentary connected";
 
-                audio.play();
+                    audio.play();
+                }
+            );
 
-            });
+            // ===============================
+            // Error handling
+            // ===============================
 
-            // =========================
-            // Error Handling
-            // =========================
+            hls.on(
+                Hls.Events.ERROR,
+                function (event, data) {
 
-            hls.on(Hls.Events.ERROR, function (event, data) {
+                    console.log(data);
 
-                console.log("HLS Error:", data);
+                    if (data.fatal) {
 
-                if (data.fatal) {
+                        switch (data.type) {
 
-                    switch(data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
 
-                        case Hls.ErrorTypes.NETWORK_ERROR:
+                                status.innerText =
+                                    "Reconnecting stream...";
 
-                            status.innerText =
-                                "Network issue... reconnecting";
+                                hls.startLoad();
 
-                            hls.startLoad();
+                                break;
 
-                            break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
 
-                        case Hls.ErrorTypes.MEDIA_ERROR:
+                                status.innerText =
+                                    "Recovering audio...";
 
-                            status.innerText =
-                                "Recovering audio stream";
+                                hls.recoverMediaError();
 
-                            hls.recoverMediaError();
+                                break;
 
-                            break;
+                            default:
 
-                        default:
+                                status.innerText =
+                                    "Stream disconnected";
 
-                            status.innerText =
-                                "Stream disconnected";
+                                hls.destroy();
 
-                            hls.destroy();
-
-                            break;
+                                break;
+                        }
                     }
                 }
-            });
-
+            );
         }
 
-        else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+        // =========================================
+        // Safari Native HLS Support
+        // =========================================
 
-            // Safari native HLS support
+        else if (
+            audio.canPlayType(
+                'application/vnd.apple.mpegurl'
+            )
+        ) {
 
             audio.src = streamUrl;
 
-            audio.addEventListener('loadedmetadata', function () {
+            audio.addEventListener(
+                'loadedmetadata',
+                function () {
 
-                audio.play();
-
-            });
+                    audio.play();
+                }
+            );
         }
 
     </script>
